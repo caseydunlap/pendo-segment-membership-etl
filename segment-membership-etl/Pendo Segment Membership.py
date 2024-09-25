@@ -37,7 +37,7 @@ def extract_secret_value(data):
         return json.loads(data)
     return data
 
-secrets = ['pendo_api_key','snowflake_bizops_user','snowflake_account','snowflake_key_pass','snowflake_bizops_wh','snowflake_fivetran_db','snowflake_bizops_role']
+secrets = ['pendo_api_key','snowflake_bizops_user','snowflake_account','snowflake_key_pass','snowflake_bizops_wh','snowflake_fivetran_db','snowflake_bizops_role','segment_membership_table']
 
 fetch_secrets = get_secrets(secrets)
 
@@ -51,6 +51,7 @@ snowflake_bizops_wh = extracted_secrets['snowflake_bizops_wh']['snowflake_bizops
 snowflake_schema = 'PENDO'
 snowflake_fivetran_db = extracted_secrets['snowflake_fivetran_db']['snowflake_fivetran_db']
 snowflake_role = extracted_secrets['snowflake_bizops_role']['snowflake_bizops_role']
+dest_table = extracted_secrets['segment_membership_table']['segment_membership_table']
 
 password = snowflake_key_pass.encode()
 
@@ -215,8 +216,8 @@ ctx = snowflake.connector.connect(
     warehouse=snowflake_bizops_wh)
 
 cs = ctx.cursor()
-script = """
-delete from "PC_FIVETRAN_DB"."PENDO"."SEGMENT_MEMBERSHIP"
+script = f"""
+delete from "{snowflake_fivetran_db}"."{snowflake_schema}"."{dest_table.upper()}"
 """
 delete = cs.execute(script)
 
@@ -234,7 +235,7 @@ engine = create_engine(
 #Import data to snowflake
 chunk_size = 10000
 chunks = [x for x in range(0, len(import_df), chunk_size)] + [len(import_df)]
-table_name = 'segment_membership' 
+table_name = dest_table
 
 for i in range(len(chunks) - 1):
     import_df[chunks[i]:chunks[i + 1]].to_sql(table_name, engine, if_exists='append', index=False)
